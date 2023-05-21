@@ -29,6 +29,7 @@ local padding = constants.padding
 local components = {
   id = {
     diagnostics = "diagnostics",
+    pick_letter = "pick_letter",
     name = "name",
     icon = "icon",
     number = "number",
@@ -374,6 +375,14 @@ end
 
 ---@param ctx bufferline.RenderContext
 ---@return bufferline.Segment
+local function get_name_prefix(ctx)
+  local component = pick.component(ctx) or { text = ctx.tab.letter, highlight = ctx.current_highlights.pick }
+  -- get first letter of name
+  return component
+end
+
+---@param ctx bufferline.RenderContext
+---@return bufferline.Segment
 local function get_name(ctx)
   local name = utils.truncate_name(ctx.tab.name, get_max_length(ctx))
   -- escape filenames that contain "%" as this breaks in statusline patterns
@@ -477,6 +486,12 @@ function M.element(current_state, element)
   local left, right = add_separators(ctx)
 
   local name = get_name(ctx)
+  local pick_letter = get_name_prefix(ctx)
+  if name.text:sub(1,1) ~= pick_letter.text then
+    pick_letter.text = string.upper(pick_letter.text)
+  else
+    name.text = name.text:sub(2)
+  end
   -- Guess how much space there will for padding based on the buffer's name
   local name_size = get_component_size({ duplicate_prefix, name, spacing(), icon, suffix })
   local left_space, right_space = add_space(ctx, name_size)
@@ -492,6 +507,7 @@ function M.element(current_state, element)
     set_id(group_item, components.id.groups),
     spacing({ when = group_item }),
     set_id(duplicate_prefix, components.id.duplicates),
+    set_id(pick_letter, components.id.pick_letter),
     set_id(name, components.id.name),
     spacing({ when = name, highlight = curr_hl.buffer }),
     set_id(diagnostic, components.id.diagnostics),
